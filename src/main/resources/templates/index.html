@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            background-color: #ccc;
+        }
+
+        .wraper {
+            height: 100%;
+            background-color: #fff;
+            max-width: 600px;
+            margin: 15px auto;
+            border: 1px solid #fff;
+            border-radius: 4px;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #fafafa;
+        }
+
+        .update-container {
+            display: none;
+            width: 50%;
+            padding: 15px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+            z-index: 1002;
+            background-color: #fff;
+        }
+
+        .mask {
+            position: fixed;
+            height: 100%;
+            width: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            display: none;
+        }
+
+        @keyframes out {
+            0% {
+                width: 0;
+            }
+            100% {
+                width: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="wraper">
+    <div th:each="item:${students}" class="item">
+        <div class="info">
+            学号:[[${item.id}]]
+            姓名:[[${item.name}]]
+            年龄:[[${item.age}]]
+        </div>
+        <div class="tool">
+            <button class="del" th:id="${item.id}">删除</button>
+            <button class="update" th:id="${item.id}">编辑</button>
+        </div>
+    </div>
+    <div class="update-container">
+        学号:<input type="text" name="id"/>
+        <br>
+        姓名:<input type="text" name="name"/>
+        <br>
+        年龄:<input type="number" name="age"/>
+        <br>
+        <button class="update-ok">确定</button>
+    </div>
+    <!--遮罩层-->
+    <div class="mask"></div>
+</div>
+</body>
+<script src="/js/jquery-1.8.3.js"></script>
+<script>
+    $('.del').on('click', function () {
+        var id = Number($(this).attr('id'));
+        $.ajax({
+            url: '/student/delete/'+id,
+            type: 'post',
+            success: function (res) {
+                console.log(res);
+                if (res) {
+                    // 把页面重新刷新一下
+                    location.reload();
+                }
+            }
+        });
+    });
+
+    // 点击"修改按钮"
+    $('.update').on('click', function () {
+        var id = Number($(this).attr('id'));
+        // 显示遮罩层
+        $('.mask').show();
+        $('.update-container').show();
+        $.ajax({
+            url:'/student/info/'+id,
+            type:'get',
+            success:function(res){
+                console.log(res);
+                $('[name=id]').val(id);
+                $('[name=name]').val(res.name);
+                $('[name=age]').val(res.age);
+            }
+        });
+    });
+
+    // 点击遮罩层消失
+    $('.mask').on('click', function () {
+        $(this).hide();
+        // 淡出
+        $('.update-container').fadeOut(400);
+    });
+
+    // 修改确定
+    $('.update-ok').on('click',function () {
+       $.ajax({
+           url:'/student/update',
+           type:'post',
+           data:{
+               name:$('[name=name]').val(),
+               age:$('[name=age]').val()
+           },
+           success:function (res) {
+              console.log(res);
+           }
+       });
+    });
+</script>
+</html>
