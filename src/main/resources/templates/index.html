@@ -18,7 +18,7 @@
             background-color: #ccc;
         }
 
-        .wraper {
+        .wrapper {
             height: 100%;
             background-color: #fff;
             max-width: 600px;
@@ -32,12 +32,12 @@
             justify-content: space-between;
             padding: 15px;
             margin-bottom: 15px;
-            border-bottom: 1px solid #fafafa;
+            border-bottom: 1px solid #ddd;
         }
 
-        .update-container {
+        .add-update-container {
             display: none;
-            width: 50%;
+            width: 400px;
             padding: 15px;
             position: absolute;
             top: 50%;
@@ -59,19 +59,19 @@
             display: none;
         }
 
-        @keyframes out {
-            0% {
-                width: 0;
-            }
-            100% {
-                width: 50%;
-            }
+        .toolbar {
+            padding: 15px;
+            border-bottom: 1px solid #ccc;
         }
+
     </style>
 </head>
 <body>
 
-<div class="wraper">
+<div class="wrapper">
+    <div class="toolbar">
+        <button class="add">新增</button>
+    </div>
     <div th:each="item:${students}" class="item">
         <div class="info">
             学号:[[${item.id}]]
@@ -83,14 +83,13 @@
             <button class="update" th:id="${item.id}">编辑</button>
         </div>
     </div>
-    <div class="update-container">
-        学号:<input type="text" name="id"/>
-        <br>
+
+    <div class="add-update-container">
         姓名:<input type="text" name="name"/>
         <br>
         年龄:<input type="number" name="age"/>
         <br>
-        <button class="update-ok">确定</button>
+        <button class="ok">确定</button>
     </div>
     <!--遮罩层-->
     <div class="mask"></div>
@@ -98,10 +97,12 @@
 </body>
 <script src="/js/jquery-1.8.3.js"></script>
 <script>
+    var id;   // 保存学生id
+
     $('.del').on('click', function () {
         var id = Number($(this).attr('id'));
         $.ajax({
-            url: '/student/delete/'+id,
+            url: '/student/delete/' + id,
             type: 'post',
             success: function (res) {
                 console.log(res);
@@ -113,44 +114,70 @@
         });
     });
 
-    // 点击"修改按钮"
+    // 点击"修改"按钮
     $('.update').on('click', function () {
-        var id = Number($(this).attr('id'));
+        id = Number($(this).attr('id'));
+        addOrUpdate();
+    });
+    // 点击"新增"按钮
+    $('.add').on('click', function () {
+        id = '';
+        addOrUpdate();
+    });
+
+    // 新增/修改
+    function addOrUpdate() {
         // 显示遮罩层
         $('.mask').show();
-        $('.update-container').show();
-        $.ajax({
-            url:'/student/info/'+id,
-            type:'get',
-            success:function(res){
-                console.log(res);
-                $('[name=id]').val(id);
-                $('[name=name]').val(res.name);
-                $('[name=age]').val(res.age);
-            }
-        });
-    });
+        $('.add-update-container').show();
+        if (id) {
+            // 修改操作
+            $.ajax({
+                url: '/student/info/' + id,
+                type: 'get',
+                success: function (res) {
+                    $('[name=name]').val(res.name);
+                    $('[name=age]').val(res.age);
+                }
+            });
+        }
+    }
 
     // 点击遮罩层消失
     $('.mask').on('click', function () {
         $(this).hide();
         // 淡出
-        $('.update-container').fadeOut(400);
+        $('.add-update-container').fadeOut(400);
     });
 
-    // 修改确定
-    $('.update-ok').on('click',function () {
-       $.ajax({
-           url:'/student/update',
-           type:'post',
-           data:{
-               name:$('[name=name]').val(),
-               age:$('[name=age]').val()
-           },
-           success:function (res) {
-              console.log(res);
-           }
-       });
+    // 确定
+    $('.ok').on('click', function () {
+        submitForm();
     });
+
+
+    function submitForm() {
+        var url;
+        if (id)
+            url = '/student/update';
+        else
+            url = '/student/add';
+        $.ajax({
+            url: url,
+            type: 'post',
+            data: {
+                id: id || undefined,
+                name: $('[name=name]').val(),
+                age: $('[name=age]').val()
+            },
+            success: function (res) {
+                if (res.code === '0') {
+                    $('.mask').hide();
+                    $('.add-update-container').hide();
+                }
+            }
+        });
+    }
+
 </script>
 </html>

@@ -2,9 +2,249 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>$Title$</title>
+    <title>Title</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            background-color: #ccc;
+        }
+
+        .wrapper {
+            background-color: #fff;
+            max-width: 600px;
+            margin: 0 auto;
+            border: 1px solid #fff;
+            border-radius: 4px;
+            min-height: 600px;
+        }
+
+        .list {
+            padding: 15px;
+            overflow: auto;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .add-update-container {
+            display: none;
+            width: 400px;
+            padding: 15px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+            z-index: 1002;
+            background-color: #fff;
+        }
+
+        .mask {
+            position: fixed;
+            height: 100%;
+            width: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            display: none;
+        }
+
+        .toolbar {
+            padding: 15px;
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
 </head>
 <body>
-$END$
+<div class="wrapper">
+
+
+    <div class="toolbar">
+        <button class="add">添加</button>
+    </div>
+    <div class="list">
+
+    </div>
+    <div class="add-update-container">
+        姓名:<input type="text" name="name"/>
+        <br>
+        年龄:<input type="number" name="age"/>
+        <br>
+        <button class="ok">确定</button>
+        <button class="cancel">取消</button>
+    </div>
+    <!--遮罩层-->
+    <div class="mask"></div>
+</div>
 </body>
+<script src="/js/jquery-1.8.3.js"></script>
+<script>
+    var id;   // 保存学生id
+
+    $('.del').on('click', function () {
+        var id = Number($(this).attr('id'));
+        $.ajax({
+            url: '/student/delete/' + id,
+            type: 'post',
+            success: function (res) {
+                console.log(res);
+                if (res) {
+                    // 把页面重新刷新一下
+                    location.reload();
+                }
+            }
+        });
+    });
+
+    // 点击"修改"按钮（动态绑定事件）
+    $('.list').on('click', '.update', function () {
+        id = Number($(this).attr('id'));
+        addOrUpdate();
+    });
+    // 点击"新增"按钮
+    $('.add').on('click', function () {
+        id = '';
+        addOrUpdate();
+    });
+
+    // 新增/修改
+    function addOrUpdate() {
+        // 清空操作
+        $('[name=name]').val('');
+        $('[name=age]').val('');
+        // 显示遮罩层
+        $('.mask').show();
+        $('.add-update-container').show();
+        if (id) {
+            // 修改操作
+            $.ajax({
+                url: '/student/info/' + id,
+                type: 'get',
+                success: function (res) {
+                    $('[name=name]').val(res.name);
+                    $('[name=age]').val(res.age);
+                }
+            });
+        }
+    }
+
+    // 点击遮罩层消失
+    $('.mask').on('click', function () {
+        $(this).hide();
+        // 淡出
+        $('.add-update-container').fadeOut(400);
+    });
+
+    // 确定
+    $('.ok').on('click', function () {
+        submitForm();
+    });
+    // 取消
+    $('.cancel').on('click', function () {
+        $('.mask').hide();
+        $('.add-update-container').hide();
+    });
+
+    // 删除
+    $('.list').on('click', '.del', function () {
+        id = Number($(this).attr('id'));
+        $.ajax({
+            url: '/student/delete/' + id,
+            type: 'post',
+            success: function (res) {
+                if (res) {
+                    $('.mask').hide();
+                    $('.add-update-container').hide();
+                    getAll().then((data) => {
+                        creatUI(data);
+                    });
+                }
+            }
+        });
+    })
+
+
+    function submitForm() {
+        var url;
+        if (id)
+            url = '/student/update';
+        else
+            url = '/student/add';
+        $.ajax({
+            url: url,
+            type: 'post',
+            data: {
+                id: id || undefined,  // 新增的时候不需要传递id 修改的时候传递id
+                name: $('[name=name]').val(),
+                age: $('[name=age]').val()
+            },
+            success: function (res) {
+                if (res.code === '0') {
+                    $('.mask').hide();
+                    $('.add-update-container').hide();
+                    getAll().then((data) => {
+                        creatUI(data);
+                    });
+                }
+            }
+        });
+    }
+
+    $(function () {
+        getAll().then((data) => {
+            creatUI(data);
+        });
+    })
+
+    // 获取所有的数据
+    function getAll() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: '/student/list',
+                type: 'get',
+                success: function (res) {
+                    resolve(res);
+                }
+            });
+        });
+    }
+
+    // 显示ui
+    function creatUI(data) {
+        let str = '';
+        data.forEach(item => {
+            str += `
+            <div class="item">
+                <div class="info">
+                学号: ${item.id}
+                姓名: ${item.name}
+                年龄: ${item.age}
+                </div>
+                <div class="tool">
+                    <button class="del" id="${item.id}">删除</button>
+                    <button class="update" id="${item.id}">编辑</button>
+                </div>
+            </div>
+           `;
+        });
+        // 先清空掉
+        $('.list').empty();
+        $('.list').append(str);
+    }
+</script>
 </html>
